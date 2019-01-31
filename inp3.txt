@@ -1,0 +1,9 @@
+P1 Blocked P2 Blocked/Suspend P5 Blocked P6 Ready P7 Blocked P8 New P9 Blocked P10 Ready P13 Ready P20 Running
+At time 5:  P20 requests the printer; P6 is dispatched.
+At time 15: P6 requests the disk; P10 is dispatched.
+At time 18: P10 requests the printer; P13 is dispatched.
+At time 20: P13 requests the keyboard.
+At time 24: An interrupt occurred for P9; An interrupt occurred for P2.
+At time 28: P8 is dispatched; An interrupt occurred for P7.
+At time 33: An interrupt occurred for P1; P8 is terminated; P7 is dispatched.
+At time 37: Time slice expires for P7; An interrupt occurred for P10; P9 is dispatched.
