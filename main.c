@@ -4,17 +4,11 @@
 
 #define MAX_LINE_LENGTH 255
 
-typedef struct instruction
-{
-    char time[20];             /* Time of request */
-    char instruction[10][30];  /* Request */
-} instruction_t;
-
 typedef struct process
 {
     char id[4];      /* Process ID */
     char state[30];  /* Process State */
-    bool updated;
+    bool updated;    /* If the process was updated in the last instruction */
 } process_t;
 
 void parse_instruction(char*, process_t*);
@@ -27,8 +21,7 @@ int main()
     char buff[MAX_LINE_LENGTH];
     char* token;
     
-    process_t        process[20];
-    instruction_t    instruction[20];
+    process_t process[20];
 
     printf("Simulation Begins\n");
     printf("Initial State\n");
@@ -51,18 +44,13 @@ int main()
     while (fgets(buff, sizeof(buff), (FILE*)fp))
     {
         printf("\n%s", buff);
-        token = strtok(buff, ":");
-        token = strtok(NULL, ";");
+        strtok(buff, ":");
+        token = strtok(NULL, ";.");
 
         while (token != NULL)
         {
             char process_id[4];
             if (sscanf(token, "%*s %*s %*s %*s %s", process_id) || sscanf(token, "%s", process_id));
-            if (strlen(process_id) == 3 && process_id[2] == '.')
-            {
-                char* p = process_id;
-                p[strlen(p)-1] = 0;
-            }
             for (int index = 0; index < process_count; index++)
             {
                 if (strstr(process[index].id, process_id))
@@ -88,7 +76,6 @@ int main()
                 printf("%s ", process[i].state);
             }
         }
-        printf("\n");
     }
     
     fclose(fp);
