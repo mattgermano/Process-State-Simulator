@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h> 
+#include <ctype.h>
 
 #define MAX_LINE_LENGTH 255
 
@@ -15,13 +16,12 @@ void parse_instruction(char*, process_t*);
 
 int main()
 {
-    FILE *fp;
-    fp = fopen("inp1.txt", "r");
+    FILE* fp = fopen("inp1.txt", "r"); /* Open the file for reading */
     
     char buff[MAX_LINE_LENGTH];
     char* token;
     
-    process_t process[20];
+    process_t process[20]; /* Instantiate an array of structs to hold each processes state information */
 
     printf("Simulation Begins\n");
     printf("Initial State\n");
@@ -43,14 +43,24 @@ int main()
 
     while (fgets(buff, sizeof(buff), (FILE*)fp))
     {
-        printf("\n%s", buff);
+        printf("\n\n");
+        printf("%s", buff);
         strtok(buff, ":");
         token = strtok(NULL, ";.");
 
         while (token != NULL)
         {
             char process_id[4];
-            if (sscanf(token, "%*s %*s %*s %*s %s", process_id) || sscanf(token, "%s", process_id));
+            while(isspace((unsigned char)*token)) token++;
+            if (token[0] == 'P')
+            {
+                sscanf(token, "%s", process_id);
+            }
+            else
+            {
+                sscanf(token, "%*s %*s %*s %*s %s", process_id);
+            }
+            
             for (int index = 0; index < process_count; index++)
             {
                 if (strstr(process[index].id, process_id))
@@ -65,15 +75,15 @@ int main()
         /* Print the updated states */
         for (int i = 0; i < process_count; i++)
         {
-            printf("%s ", process[i].id);
+            printf("%s ", process[i].id); /* Print the Process ID */
             if (process[i].updated)
             {
-                printf("%s* ", process[i].state);
-                process[i].updated = false;
+                printf("%s* ", process[i].state); /* Print the state with an asterick if it was updated */
+                process[i].updated = false;       /* Update back to false */
             }
             else
             {
-                printf("%s ", process[i].state);
+                printf("%s ", process[i].state); /* Print the state normally if it was not updated */
             }
         }
     }
@@ -86,6 +96,8 @@ int main()
 void parse_instruction(char* instruction, process_t* process)
 {
     process->updated = true;
+    
+    /* If/else if state machine to update the process state based on the instruction */
     if (strstr(instruction, "requests"))
     {
         strcpy(process->state, "Blocked");
