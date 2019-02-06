@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 #include <ctype.h>
 
 #define MAX_LINE_LENGTH 255
@@ -14,24 +14,23 @@ typedef struct process
 
 void parse_instruction(char*, process_t*);
 
-int main()
-{
-    FILE* fp = fopen("inp1.txt", "r"); /* Open the file for reading */
-    
-    char buff[MAX_LINE_LENGTH];
-    char* token;
-    
-    process_t process[20]; /* Instantiate an array of structs to hold each processes state information */
+int main() {
+    FILE *fp = fopen("inp2.txt", "r");
 
+    char buff[MAX_LINE_LENGTH];
+    char *token;
+
+    process_t process[20];
+
+    fgets(buff, sizeof(buff), fp);
+    buff[strcspn(buff, "\r\n")] = 0;
     printf("Simulation Begins\n");
     printf("Initial State\n");
-    fgets(buff, sizeof(buff), (FILE*)fp);  /* Place the process line into the buffer */
     printf("%s", buff);
-    token = strtok(buff, " ");             /* Place the first process identifier into the token field */
 
+    token = strtok(buff, " ");
     int process_count = 0;
-    while (token != NULL)
-    {
+    while (token != NULL) {
         strcpy(process[process_count].id, token);
         token = strtok(NULL, " ");
         strcpy(process[process_count].state, token);
@@ -41,11 +40,11 @@ int main()
         process_count++;
     }
 
-    while (fgets(buff, sizeof(buff), (FILE*)fp))
+    while (fgets(buff, sizeof(buff), fp))
     {
-        printf("\n\n");
-        printf("%s", buff);
-        strtok(buff, ":");
+        buff[strcspn(buff, "\r\n")] = 0;
+        printf("\n\n%s\n", buff);
+        token = strtok(buff, ":");
         token = strtok(NULL, ";.");
 
         while (token != NULL)
@@ -60,7 +59,7 @@ int main()
             {
                 sscanf(token, "%*s %*s %*s %*s %s", process_id);
             }
-            
+
             for (int index = 0; index < process_count; index++)
             {
                 if (strstr(process[index].id, process_id))
@@ -69,34 +68,32 @@ int main()
                     break;
                 }
             }
-            token = strtok(NULL, ";");
+            token = strtok(NULL, ";.");
         }
 
-        /* Print the updated states */
         for (int i = 0; i < process_count; i++)
         {
-            printf("%s ", process[i].id); /* Print the Process ID */
+            printf("%s ", process[i].id);
             if (process[i].updated)
             {
-                printf("%s* ", process[i].state); /* Print the state with an asterick if it was updated */
+                printf("%s*", process[i].state); /* Print the state with an asterick if it was updated */
                 process[i].updated = false;       /* Update back to false */
             }
             else
             {
-                printf("%s ", process[i].state); /* Print the state normally if it was not updated */
+                printf("%s", process[i].state); /* Print the state normally if it was not updated */
             }
+            if (i < process_count - 1) printf(" ");
         }
     }
-    
     fclose(fp);
-
     return 0;
 }
 
 void parse_instruction(char* instruction, process_t* process)
 {
     process->updated = true;
-    
+
     /* If/else if state machine to update the process state based on the instruction */
     if (strstr(instruction, "requests"))
     {
@@ -131,7 +128,7 @@ void parse_instruction(char* instruction, process_t* process)
         {
             strcpy(process->state, "Ready");
         }
-        
+
     }
     else if (strstr(instruction, "terminated"))
     {
@@ -147,6 +144,5 @@ void parse_instruction(char* instruction, process_t* process)
         {
             strcpy(process->state, "Ready");
         }
-        
-    }   
+    }
 }
