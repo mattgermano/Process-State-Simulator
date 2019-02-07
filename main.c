@@ -15,7 +15,8 @@ typedef struct process
 
 void parse_instruction(char*, process_t*);
 
-int main() {
+int main() 
+{
     FILE *fp = fopen("inp1.txt", "r");
 
     char buff[MAX_LINE_LENGTH];
