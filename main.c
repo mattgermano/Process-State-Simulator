@@ -3,7 +3,8 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-#define MAX_LINE_LENGTH 255
+#define MAX_LINE_LENGTH   255
+#define MAX_PROCESS_COUNT 20
 
 typedef struct process
 {
@@ -15,12 +16,12 @@ typedef struct process
 void parse_instruction(char*, process_t*);
 
 int main() {
-    FILE *fp = fopen("inp2.txt", "r");
+    FILE *fp = fopen("inp1.txt", "r");
 
     char buff[MAX_LINE_LENGTH];
     char *token;
 
-    process_t process[20];
+    process_t process[MAX_PROCESS_COUNT];
 
     fgets(buff, sizeof(buff), fp);
     buff[strcspn(buff, "\r\n")] = 0;
@@ -71,19 +72,86 @@ int main() {
             token = strtok(NULL, ";.");
         }
 
+        /* Check if all processes are in the blocked/new state */
+        int blocked_new = 0;
+        for (int i = 0; i < process_count; i++)
+        {
+            if (strstr(process[i].state, "Blocked") || strstr(process[i].state, "New"))
+            {
+                blocked_new++;
+            }
+        }
+
+        /* Print the Updated States */
         for (int i = 0; i < process_count; i++)
         {
             printf("%s ", process[i].id);
             if (process[i].updated)
             {
                 printf("%s*", process[i].state); /* Print the state with an asterick if it was updated */
-                process[i].updated = false;       /* Update back to false */
+                if (blocked_new != process_count) process[i].updated = false;
             }
             else
             {
                 printf("%s", process[i].state); /* Print the state normally if it was not updated */
             }
             if (i < process_count - 1) printf(" ");
+        }
+
+        /* Swap the newest process that was blocked and replace with a new process if everything is blocked/new */
+        if (blocked_new == process_count)
+        {
+            printf("\n\nAll processes are in the blocked/new state: ");
+            for (int i = 0; i < process_count; i++)
+            {
+                if (process[i].updated)
+                {
+                    process[i].updated = false;       /* Update back to false */
+                    parse_instruction("swapped out", &process[i]); /* Swap out the process */
+                    printf("%s is swapped out to %s; ", process[i].id, process[i].state);
+                    for (int j = 0; j < process_count; j++)
+                    {
+                        if (strstr(process[j].state, "New"))
+                        {
+                            parse_instruction("admit", &process[j]); /* Swap in a new process */
+                            printf("%s is admitted to the %s state.", process[j].id, process[j].state);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        /* If a process exits, swap a new process in */
+        int priority = 0;
+        for (int i = 0; i < process_count; i++)
+        {
+            if (strstr(process[i].state, "Exit"))
+            {
+                for (int j = 0; j < process_count; j++)
+                {
+                    if (strstr(process[j].state, "New"))
+                    {
+                        priority = 1;
+                        parse_instruction("admit", &process[j]);
+                        printf("\n\n%s terminated: %s swapped in to the %s state", 
+                                   process[i].id, process[j].id, process[j].state);
+                    }
+                }
+                if (priority == 0)
+                {
+                    for (int j = 0; j < process_count; j++)
+                    {
+                        if (strstr(process[j].state, "Ready/Suspend"))
+                        {
+                            parse_instruction("swapped in", &process[j]);
+                            printf("\n\n%s terminated: %s swapped in to the %s state", 
+                                   process[i].id, process[j].id, process[j].state);
+                        }
+                    }
+                }
+            }
         }
     }
     fclose(fp);
@@ -144,5 +212,9 @@ void parse_instruction(char* instruction, process_t* process)
         {
             strcpy(process->state, "Ready");
         }
+    }
+    else if (strstr(instruction, "admit"))
+    {
+        strcpy(process->state, "Ready");
     }
 }
