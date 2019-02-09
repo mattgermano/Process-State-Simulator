@@ -6,6 +6,7 @@
 #define MAX_LINE_LENGTH   255
 #define MAX_PROCESS_COUNT 20
 
+/* Struct to store information about each process */ 
 typedef struct process
 {
     char id[4];      /* Process ID */
@@ -17,21 +18,22 @@ void parse_instruction(char*, process_t*);
 
 int main() 
 {
-    FILE *fp = fopen("inp1.txt", "r");
+    FILE *fp = fopen("inp4.txt", "r"); /* Open the file for reading */
 
     char buff[MAX_LINE_LENGTH];
     char *token;
 
-    process_t process[MAX_PROCESS_COUNT];
+    process_t process[MAX_PROCESS_COUNT]; /* Instantiate an array of structs for each process */
 
+    /* Get the first line of the file and print it out to the screen */
     fgets(buff, sizeof(buff), fp);
     buff[strcspn(buff, "\r\n")] = 0;
     printf("Simulation Begins\n");
     printf("Initial State\n");
     printf("%s", buff);
 
-    token = strtok(buff, " ");
-    int process_count = 0;
+    token = strtok(buff, " "); /* Tokenize the first line on each space */
+    int process_count = 0;     /* Loop through each token and store the process ID and initial state into the struct array */
     while (token != NULL) {
         strcpy(process[process_count].id, token);
         token = strtok(NULL, " ");
@@ -42,35 +44,36 @@ int main()
         process_count++;
     }
 
+    /* Loop through the remaining lines of the input file */
     while (fgets(buff, sizeof(buff), fp))
     {
         buff[strcspn(buff, "\r\n")] = 0;
         printf("\n\n%s\n", buff);
-        token = strtok(buff, ":");
-        token = strtok(NULL, ";.");
+        token = strtok(buff, ":");  /* First token is the time information */
+        token = strtok(NULL, ";."); /* Next token is the instruction */
 
         while (token != NULL)
         {
             char process_id[4];
-            while(isspace((unsigned char)*token)) token++;
-            if (token[0] == 'P')
+            while(isspace((unsigned char)*token)) token++; /* Remove the leading spaces from the instruction */
+            if (token[0] == 'P') /* If the process ID is at the beginning */
             {
                 sscanf(token, "%s", process_id);
             }
-            else
+            else /* Else if the process ID is at the end */
             {
                 sscanf(token, "%*s %*s %*s %*s %s", process_id);
             }
 
             for (int index = 0; index < process_count; index++)
             {
-                if (strstr(process[index].id, process_id))
+                if (strstr(process[index].id, process_id)) /* Find the struct that matches the process ID and parse the instruction */
                 {
                     parse_instruction(token, &process[index]);
                     break;
                 }
             }
-            token = strtok(NULL, ";.");
+            token = strtok(NULL, ";."); /* Get the next instruction */
         }
 
         /* Check if all processes are in the blocked/new state */
@@ -128,14 +131,14 @@ int main()
         int priority = 0;
         for (int i = 0; i < process_count; i++)
         {
-            if (strstr(process[i].state, "Exit"))
+            if (strstr(process[i].state, "Exit")) /* If a process exits */
             {
                 for (int j = 0; j < process_count; j++)
                 {
-                    if (strstr(process[j].state, "New"))
+                    if (strstr(process[j].state, "New")) /* Find a new process */
                     {
                         priority = 1;
-                        parse_instruction("admit", &process[j]);
+                        parse_instruction("admit", &process[j]); /* Swap it in */
                         printf("\n\n%s terminated: %s swapped in to the %s state", 
                                    process[i].id, process[j].id, process[j].state);
                     }
@@ -144,7 +147,7 @@ int main()
                 {
                     for (int j = 0; j < process_count; j++)
                     {
-                        if (strstr(process[j].state, "Ready/Suspend"))
+                        if (strstr(process[j].state, "Ready/Suspend")) /* If there are no new processes, swap in a Ready/Suspend process */
                         {
                             parse_instruction("swapped in", &process[j]);
                             printf("\n\n%s terminated: %s swapped in to the %s state", 
@@ -155,7 +158,7 @@ int main()
             }
         }
     }
-    fclose(fp);
+    fclose(fp); /* Close the file */
     return 0;
 }
 
