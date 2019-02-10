@@ -18,7 +18,7 @@ void parse_instruction(char*, process_t*);
 
 int main() 
 {
-    FILE *fp = fopen("inp4.txt", "r"); /* Open the file for reading */
+    FILE *fp = fopen("inp3.txt", "r"); /* Open the file for reading */
 
     char buff[MAX_LINE_LENGTH];
     char *token;
@@ -135,23 +135,23 @@ int main()
             {
                 for (int j = 0; j < process_count; j++)
                 {
-                    if (strstr(process[j].state, "New")) /* Find a new process */
+                    if (strstr(process[j].state, "Ready/Suspend")) /* If there are no new processes, swap in a Ready/Suspend process */
                     {
                         priority = 1;
-                        parse_instruction("admit", &process[j]); /* Swap it in */
+                        parse_instruction("swapped in", &process[j]);
                         printf("\n\n%s terminated: %s swapped in to the %s state", 
-                                   process[i].id, process[j].id, process[j].state);
+                                process[i].id, process[j].id, process[j].state);
                     }
                 }
                 if (priority == 0)
                 {
                     for (int j = 0; j < process_count; j++)
                     {
-                        if (strstr(process[j].state, "Ready/Suspend")) /* If there are no new processes, swap in a Ready/Suspend process */
+                        if (strstr(process[j].state, "New")) /* Find a new process */
                         {
-                            parse_instruction("swapped in", &process[j]);
+                            parse_instruction("admit", &process[j]); /* Swap it in */
                             printf("\n\n%s terminated: %s swapped in to the %s state", 
-                                   process[i].id, process[j].id, process[j].state);
+                                    process[i].id, process[j].id, process[j].state);
                         }
                     }
                 }
