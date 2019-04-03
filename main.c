@@ -3,8 +3,10 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-#define MAX_LINE_LENGTH   255
+#define MAX_LINE_LENGTH   1024
 #define MAX_PROCESS_COUNT 20
+#define LATENCY_PENALTY   10
+#define BUS_PENALTY       5
 
 /* Struct to store information about each process */ 
 typedef struct process
@@ -18,17 +20,35 @@ void parse_instruction(char*, process_t*);
 
 int main() 
 {
-    FILE *fp = fopen("inp3.txt", "r"); /* Open the file for reading */
+    FILE *fp = fopen("test_experiment2.txt", "r"); /* Open the file for reading */
 
     char buff[MAX_LINE_LENGTH];
     char *token;
 
     process_t process[MAX_PROCESS_COUNT]; /* Instantiate an array of structs for each process */
 
+    int percentage, swap_count;
+    int overhead_latency = 0;
+    int bus_latency = 0;
+
+    do
+    {
+        printf("Enter the percentage of processes in the Blocked state at which processes are swapped out (80, 90, 100): ");
+        scanf("%d", &percentage);
+        if (percentage != 80 && percentage != 90 && percentage != 100) printf("Error: Invalid percentage\n");
+    } while (percentage != 80 && percentage != 90 && percentage != 100);
+
+    do
+    {
+        printf("Enter the number of processes that should be swapped out (1 or 2): ");
+        scanf("%d", &swap_count);
+        if (swap_count < 1 || swap_count > 2) printf("Error: Invalid swap count\n");
+    } while (swap_count < 1 || swap_count > 2);
+
     /* Get the first line of the file and print it out to the screen */
     fgets(buff, sizeof(buff), fp);
     buff[strcspn(buff, "\r\n")] = 0;
-    printf("Simulation Begins\n");
+    printf("\nSimulation Begins\n");
     printf("Initial State\n");
     printf("%s", buff);
 
@@ -76,13 +96,19 @@ int main()
             token = strtok(NULL, ";."); /* Get the next instruction */
         }
 
-        /* Check if all processes are in the blocked/new state */
-        int blocked_new = 0;
+        int blocked = 0, main_memory_count = 0;
+        /* Check how many processes are in the blocked state and in main memory*/
         for (int i = 0; i < process_count; i++)
         {
-            if (strstr(process[i].state, "Blocked") || strstr(process[i].state, "New"))
+            if (strstr(process[i].state, "Blocked") && !strstr(process[i].state, "Blocked/Suspend"))
             {
-                blocked_new++;
+                blocked++;
+                main_memory_count++;
+            }
+            else if ((strstr(process[i].state, "Ready") && !strstr(process[i].state, "Ready/Suspend")) 
+                 || strstr(process[i].state, "Running"))
+            {
+                main_memory_count++;
             }
         }
 
@@ -93,7 +119,7 @@ int main()
             if (process[i].updated)
             {
                 printf("%s*", process[i].state); /* Print the state with an asterick if it was updated */
-                if (blocked_new != process_count) process[i].updated = false;
+                if (!strstr(process[i].state, "Exit")) process[i].updated = false;
             }
             else
             {
@@ -102,37 +128,59 @@ int main()
             if (i < process_count - 1) printf(" ");
         }
 
-        /* Swap the newest process that was blocked and replace with a new process if everything is blocked/new */
-        if (blocked_new == process_count)
+        /* Swap processes out if the number of blocked process percentage is greater than or equal to the user input */
+        char* name = (swap_count > 1) ? "processes" : "process";
+        int priority = 0;
+        if (((float)blocked / (float)main_memory_count) * 100 >= percentage)
         {
-            printf("\n\nAll processes are in the blocked/new state: ");
-            for (int i = 0; i < process_count; i++)
+            overhead_latency += LATENCY_PENALTY;
+            printf("\n\nNumber of blocked processes has reached the specified threshold of %d%%...Swapping out %d %s\n", 
+                    percentage, swap_count, name);
+            for (int swap = 0; swap < swap_count; swap++)
             {
-                if (process[i].updated)
+                if (swap_count == 2) bus_latency += BUS_PENALTY;
+                priority = 0;
+                for (int i = 0; i < process_count; i++)
                 {
-                    process[i].updated = false;       /* Update back to false */
-                    parse_instruction("swapped out", &process[i]); /* Swap out the process */
-                    printf("%s is swapped out to %s; ", process[i].id, process[i].state);
-                    for (int j = 0; j < process_count; j++)
+                    if (strstr(process[i].state, "Blocked") && !strstr(process[i].state, "Blocked/Suspend"))
                     {
-                        if (strstr(process[j].state, "New"))
+                        parse_instruction("swapped out", &process[i]); /* Swap out the process */
+                        printf("%s is swapped out to %s; ", process[i].id, process[i].state);
+                        for (int j = 0; j < process_count; j++)
                         {
-                            parse_instruction("admit", &process[j]); /* Swap in a new process */
-                            printf("%s is admitted to the %s state.", process[j].id, process[j].state);
-                            break;
+                            if (strstr(process[j].state, "Ready/Suspend")) /* If there are no new processes, swap in a Ready/Suspend process */
+                            {
+                                priority = 1;
+                                parse_instruction("swapped in", &process[j]);
+                                printf("%s swapped in to the %s state. ", process[j].id, process[j].state);
+                                break;
+                            }
                         }
+                        if (priority == 0)
+                        {
+                            for (int j = 0; j < process_count; j++)
+                            {
+                                if (strstr(process[j].state, "New")) /* Find a new process */
+                                {
+                                    parse_instruction("admit", &process[j]); /* Swap it in */
+                                    printf("%s swapped in to the %s state. ", process[j].id, process[j].state);
+                                    break;
+                                }
+                            }
+                        }
+                        break;
                     }
-                    break;
                 }
             }
         }
 
         /* If a process exits, swap a new process in */
-        int priority = 0;
+        priority = 0;
         for (int i = 0; i < process_count; i++)
         {
-            if (strstr(process[i].state, "Exit")) /* If a process exits */
+            if (strstr(process[i].state, "Exit") && process[i].updated == true) /* If a process exits */
             {
+                process[i].updated = false;
                 for (int j = 0; j < process_count; j++)
                 {
                     if (strstr(process[j].state, "Ready/Suspend")) /* If there are no new processes, swap in a Ready/Suspend process */
@@ -141,6 +189,7 @@ int main()
                         parse_instruction("swapped in", &process[j]);
                         printf("\n\n%s terminated: %s swapped in to the %s state", 
                                 process[i].id, process[j].id, process[j].state);
+                        break;
                     }
                 }
                 if (priority == 0)
@@ -152,12 +201,17 @@ int main()
                             parse_instruction("admit", &process[j]); /* Swap it in */
                             printf("\n\n%s terminated: %s swapped in to the %s state", 
                                     process[i].id, process[j].id, process[j].state);
+                            break;
                         }
                     }
                 }
+                overhead_latency += LATENCY_PENALTY;
             }
         }
     }
+
+    printf("\n\nThe overall overhead latency is %d ms", overhead_latency + bus_latency);
+
     fclose(fp); /* Close the file */
     return 0;
 }

@@ -1,0 +1,10 @@
+P1 New P2 New P3 New P4 New P5 New P6 Running P7 Ready P8 Blocked P9 Blocked P10 Blocked P11 Blocked P12 Blocked P13 Blocked P14 Blocked P15 Blocked P16 Blocked P17 Blocked/Suspend P18 Blocked/Suspend P19 Ready/Suspend P20 Ready/Suspend
+At time 5: An interrupt occured for P17.
+At time 10: P6 requests the keyboard; P7 is dispatched.
+At time 20: P7 requests I/O.
+At time 25: P17 is dispatched; An interrupt occured for P18.
+At time 30: P17 is terminated.
+At time 40: P19 is dispatched.
+At time 50: P19 requests the disk.
+At time 55: P18 is dispatched.
+At time 60: P18 requests the disk.
